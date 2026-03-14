@@ -1,0 +1,22 @@
+# Rust build artifacts
+/target/
+
+# Runtime and profiling output
+*.log
+*.profraw
+*.profdata
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+
+
+# Added by cargo
+
+/target
