@@ -5,7 +5,7 @@ use crate::app::timing::{FrameSample, TimingState};
 use crate::input::controls::ControlState;
 use crate::physics::world::PhysicsWorld;
 use crate::render::debug_draw::{DebugCamera, DebugRenderer};
-use crate::render::hud::HudRenderer;
+use crate::render::hud::{HudRenderer, body_readouts};
 
 // The main application struct that manages the game loop, input, physics world, and rendering.
 pub struct App {
@@ -78,6 +78,7 @@ impl App {
             frame_sample.raw_frame_time,
             self.world.step_count(),
             self.scene.primitive_counts(&self.world),
+            &body_readouts(&self.world),
         );
     }
 }

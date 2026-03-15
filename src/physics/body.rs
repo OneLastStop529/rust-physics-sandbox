@@ -24,13 +24,16 @@ pub enum BodyType {
 // - `collider`: Optional collider shape for collision detection
 #[derive(Debug)]
 pub struct RigidBody {
+    #[allow(dead_code)]
     pub id: u32,
     pub body_type: BodyType,
     pub position: Vec2,
     pub velocity: Vec2,
     pub force_accumulator: Vec2,
     pub inverse_mass: f32,
+    #[allow(dead_code)]
     pub restitution: f32,
+    #[allow(dead_code)]
     pub friction: f32,
     pub collider: Option<Collider>,
 }
@@ -53,5 +56,9 @@ impl RigidBody {
             friction: 0.5,
             collider,
         }
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.body_type == BodyType::Static
     }
 }

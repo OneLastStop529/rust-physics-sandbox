@@ -21,6 +21,8 @@ Deferred to Milestone 1:
 
 ## Milestone 1: App Loop + Debug Rendering
 
+Completed:
+
 - create window and application bootstrap
 - implement frame loop
 - add frame timing capture
@@ -33,6 +35,8 @@ Deferred to Milestone 1:
 - display FPS and frame time
 
 ## Milestone 2: Rigid Body Model
+
+Completed:
 
 - define `BodyType` enum with `Dynamic` and `Static`
 - define `RigidBody` struct
@@ -48,6 +52,8 @@ Deferred to Milestone 1:
 
 ## Milestone 3: Gravity + Integration
 
+Completed:
+
 - define fixed simulation `step(dt)` entry point
 - add gravity vector to world config
 - implement gravity application for dynamic bodies
@@ -55,9 +61,12 @@ Deferred to Milestone 1:
 - implement position integration
 - ensure static bodies do not move
 - add falling circle demo scene
-- add falling box demo scene
 - add test for gravity affecting only dynamic bodies
-- add test for fixed-step consistency across frame rates
+
+Deferred to Milestone 4+:
+
+- add additional demo scenes once collision behavior exists
+- add an explicit fixed-step consistency test at the world/app boundary if needed
 
 ## Milestone 4: Collision Detection
 

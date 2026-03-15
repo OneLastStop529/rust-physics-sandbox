@@ -6,18 +6,28 @@ The goal is to understand physics simulation architecture end to end: fixed time
 
 ## Status
 
-This repository has completed the initial crate scaffold for Milestone 0.
+Milestone 3 is complete. The next implementation target is Milestone 4: Collision Detection.
 
 Current contents:
 
-- Cargo crate skeleton
-- placeholder source modules
-- project planning docs
-- architecture notes
-- milestone breakdown
-- implementation task list
+- Macroquad application shell with fixed timestep accumulator
+- pause and single-step controls
+- debug rendering for lines, circles, AABBs, and points
+- HUD with timing and body readouts
+- rigid body and physics world scaffolding
+- dynamic and static bodies with circle and AABB colliders
+- gravity and semi-implicit Euler integration
+- project planning docs and milestone breakdown
 
-The current code is intentionally minimal: the binary runs as a terminal shell and the main physics and app modules are placeholders. The next implementation target is Milestone 1: app loop and debug rendering.
+Current runtime behavior:
+
+- a falling-body demo scene runs in a window
+- dynamic bodies accelerate under gravity
+- static bodies remain stationary
+- the floor is visualized but does not block motion yet
+- tests and strict clippy checks are passing
+
+Collision detection and response are not implemented yet, so falling bodies currently pass through the floor. That is expected until Milestones 4 through 6.
 
 ## v0.1 Scope
 
@@ -110,11 +120,11 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Near-Term Plan
 
-1. choose a lightweight rendering/input library
-2. implement the app loop and fixed timestep shell
-3. add rigid bodies, colliders, and gravity
-4. build collision detection, contacts, and solver incrementally
-5. add sandbox controls, debug tools, and demo scenes
+1. implement Milestone 4 narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
+2. surface overlap results in deterministic tests before adding response code
+3. convert overlaps into contacts in Milestone 5
+4. add impulse-based collision resolution in Milestone 6
+5. expand sandbox controls, debug tools, and demo scenes after core collision behavior is stable
 
 ## Notes
 

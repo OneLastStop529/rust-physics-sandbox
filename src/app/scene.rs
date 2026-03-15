@@ -43,23 +43,14 @@ impl Default for DebugScene {
 
 impl DebugScene {
     pub fn initialize_world(world: &mut PhysicsWorld) {
+        // Minimal Milestone 3 scene: one floor and one falling body.
         world.create_static_body(
             Vec2::new(0.0, -4.5),
             Some(Collider::Aabb {
                 half_extents: (10.0, 0.5),
             }),
         );
-        world.create_dynamic_body(Vec2::new(-4.0, 1.5), Some(Collider::Circle { radius: 1.0 }));
-        world.create_dynamic_body(
-            Vec2::new(2.5, -1.25),
-            Some(Collider::Circle { radius: 0.75 }),
-        );
-        world.create_dynamic_body(
-            Vec2::new(5.0, 2.5),
-            Some(Collider::Aabb {
-                half_extents: (1.0, 1.5),
-            }),
-        );
+        world.create_dynamic_body(Vec2::new(0.0, 3.0), Some(Collider::Circle { radius: 0.75 }));
     }
 
     pub fn draw(&self, renderer: &mut DebugRenderer) {
