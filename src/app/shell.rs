@@ -17,11 +17,14 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        let mut world = PhysicsWorld::default();
+        DebugScene::initialize_world(&mut world);
+
         Self {
             controls: ControlState::default(),
             scene: DebugScene::default(),
             timing: TimingState::new(1.0 / 60.0, 0.25),
-            world: PhysicsWorld::default(),
+            world,
         }
     }
 
@@ -67,13 +70,14 @@ impl App {
         let mut debug_renderer = DebugRenderer::new(debug_camera);
 
         self.scene.draw(&mut debug_renderer);
+        self.scene.draw_world(&mut debug_renderer, &self.world);
 
         let hud_renderer = HudRenderer::default();
         hud_renderer.draw(
             &self.timing,
             frame_sample.raw_frame_time,
             self.world.step_count(),
-            self.scene.primitive_counts(),
+            self.scene.primitive_counts(&self.world),
         );
     }
 }

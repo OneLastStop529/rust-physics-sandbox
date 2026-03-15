@@ -1,7 +1,17 @@
+use crate::{
+    math::Vec2,
+    physics::{
+        body::{BodyHandle, BodyType, RigidBody},
+        collider::Collider,
+    },
+};
+
+// Represents the physics simulation world, containing all bodies and managing the simulation state
 #[derive(Default)]
-// The PhysicsWorld struct represents the state of the physics simulation. It contains a step count that tracks how many times the simulation has been stepped. In a more complete implementation, this struct would also contain the bodies, forces, and other state needed to run the physics simulation.
 pub struct PhysicsWorld {
+    next_body_id: u32,
     step_count: u64,
+    bodies: Vec<RigidBody>,
 }
 
 impl PhysicsWorld {
@@ -11,5 +21,138 @@ impl PhysicsWorld {
 
     pub fn step_count(&self) -> u64 {
         self.step_count
+    }
+
+    pub fn add_body(&mut self, body: RigidBody) -> BodyHandle {
+        let handle = self.bodies.len();
+        self.bodies.push(body);
+        handle
+    }
+
+    pub fn create_body(
+        &mut self,
+        body_type: BodyType,
+        position: Vec2,
+        collider: Option<Collider>,
+    ) -> BodyHandle {
+        let id = self.next_body_id;
+        self.next_body_id += 1;
+
+        self.add_body(RigidBody::new(id, body_type, position, collider))
+    }
+
+    pub fn create_dynamic_body(
+        &mut self,
+        position: Vec2,
+        collider: Option<Collider>,
+    ) -> BodyHandle {
+        self.create_body(BodyType::Dynamic, position, collider)
+    }
+
+    pub fn create_static_body(&mut self, position: Vec2, collider: Option<Collider>) -> BodyHandle {
+        self.create_body(BodyType::Static, position, collider)
+    }
+
+    pub fn bodies(&self) -> &[RigidBody] {
+        &self.bodies
+    }
+
+    pub fn bodies_mut(&mut self) -> &mut [RigidBody] {
+        &mut self.bodies
+    }
+
+    pub fn body(&self, handle: BodyHandle) -> Option<&RigidBody> {
+        self.bodies.get(handle)
+    }
+
+    pub fn body_mut(&mut self, handle: BodyHandle) -> Option<&mut RigidBody> {
+        self.bodies.get_mut(handle)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PhysicsWorld;
+    use crate::{
+        math::Vec2,
+        physics::{
+            body::{BodyType, RigidBody},
+            collider::Collider,
+        },
+    };
+
+    #[test]
+    fn stores_and_retrieves_bodies_by_handle() {
+        let mut world = PhysicsWorld::default();
+
+        let handle = world.add_body(RigidBody {
+            id: 7,
+            body_type: BodyType::Dynamic,
+            position: Vec2::new(1.0, 2.0),
+            velocity: Vec2::new(3.0, 4.0),
+            force_accumulator: Vec2::default(),
+            inverse_mass: 1.0,
+            restitution: 0.5,
+            friction: 0.3,
+            collider: None,
+        });
+
+        assert_eq!(world.bodies().len(), 1);
+        assert_eq!(
+            world.body(handle).map(|body| body.position),
+            Some(Vec2::new(1.0, 2.0))
+        );
+        assert!(world.body(handle + 1).is_none());
+    }
+
+    #[test]
+    fn increments_step_count() {
+        let mut world = PhysicsWorld::default();
+        assert_eq!(world.step_count(), 0);
+        world.step(0.016);
+        assert_eq!(world.step_count(), 1);
+        world.step(0.016);
+        assert_eq!(world.step_count(), 2);
+    }
+
+    #[test]
+    fn adds_body_to_storage() {
+        let mut world = PhysicsWorld::default();
+        let handle = world.add_body(RigidBody {
+            id: 1,
+            body_type: BodyType::Dynamic,
+            position: Vec2::new(0.0, 0.0),
+            velocity: Vec2::new(0.0, 0.0),
+            force_accumulator: Vec2::default(),
+            inverse_mass: 1.0,
+            restitution: 0.5,
+            friction: 0.5,
+            collider: None,
+        });
+
+        assert_eq!(world.bodies().len(), 1);
+        assert_eq!(world.body(handle).unwrap().id, 1);
+    }
+
+    #[test]
+    fn creates_static_and_dynamic_bodies() {
+        let mut world = PhysicsWorld::default();
+
+        let dynamic_handle =
+            world.create_dynamic_body(Vec2::new(-1.0, 3.0), Some(Collider::Circle { radius: 1.0 }));
+        let static_handle = world.create_static_body(
+            Vec2::new(0.0, -5.0),
+            Some(Collider::Aabb {
+                half_extents: (10.0, 0.5),
+            }),
+        );
+
+        let dynamic_body = world.body(dynamic_handle).unwrap();
+        let static_body = world.body(static_handle).unwrap();
+
+        assert_eq!(dynamic_body.body_type, BodyType::Dynamic);
+        assert_eq!(dynamic_body.inverse_mass, 1.0);
+        assert_eq!(static_body.body_type, BodyType::Static);
+        assert_eq!(static_body.inverse_mass, 0.0);
     }
 }
