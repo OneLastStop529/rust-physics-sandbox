@@ -1,5 +1,6 @@
 use crate::math::{Aabb, Vec2};
 use crate::physics::body::RigidBody;
+use crate::physics::collision::CollisionStats;
 use crate::physics::{collider::Collider, world::PhysicsWorld};
 use crate::render::debug_draw::DebugRenderer;
 
@@ -10,6 +11,12 @@ pub struct PrimitiveCounts {
     pub circles: usize,
     pub aabbs: usize,
     pub points: usize,
+}
+
+#[derive(Clone, Copy)]
+pub struct CollisionSceneStats {
+    pub candidate_pairs: usize,
+    pub collisions: usize,
 }
 
 // The `DebugScene` struct represents a simple scene for testing the debug renderer. It contains a grid of lines, a few circles, AABBs, and points. The `draw` method uses a `DebugRenderer` to render these primitives on the screen, while the `primitive_counts` method returns the count of each type of primitive in the scene for display in the HUD.
@@ -43,14 +50,34 @@ impl Default for DebugScene {
 
 impl DebugScene {
     pub fn initialize_world(world: &mut PhysicsWorld) {
-        // Minimal Milestone 3 scene: one floor and one falling body.
+        // Milestone 4 scene covers the supported narrow-phase pairs.
         world.create_static_body(
-            Vec2::new(0.0, -4.5),
+            Vec2::new(0.0, -5.5),
             Some(Collider::Aabb {
                 half_extents: (10.0, 0.5),
             }),
         );
-        world.create_dynamic_body(Vec2::new(0.0, 3.0), Some(Collider::Circle { radius: 0.75 }));
+        world.create_dynamic_body(Vec2::new(-5.0, 1.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_dynamic_body(Vec2::new(-3.4, 1.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_dynamic_body(
+            Vec2::new(0.0, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (1.2, 1.2),
+            }),
+        );
+        world.create_dynamic_body(
+            Vec2::new(1.7, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (1.0, 1.0),
+            }),
+        );
+        world.create_static_body(
+            Vec2::new(5.0, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (1.25, 1.25),
+            }),
+        );
+        world.create_dynamic_body(Vec2::new(6.0, 1.5), Some(Collider::Circle { radius: 1.0 }));
     }
 
     pub fn draw(&self, renderer: &mut DebugRenderer) {
@@ -82,6 +109,18 @@ impl DebugScene {
             circles,
             aabbs,
             points: 0,
+        }
+    }
+
+    pub fn collision_stats(&self, world: &PhysicsWorld) -> CollisionSceneStats {
+        let CollisionStats {
+            candidate_pairs,
+            collisions,
+        } = world.collision_stats();
+
+        CollisionSceneStats {
+            candidate_pairs,
+            collisions,
         }
     }
 

@@ -78,6 +78,7 @@ impl App {
             frame_sample.raw_frame_time,
             self.world.step_count(),
             self.scene.primitive_counts(&self.world),
+            self.scene.collision_stats(&self.world),
             &body_readouts(&self.world),
         );
     }

@@ -1,7 +1,7 @@
 use macroquad::prelude::{Color, color_u8, draw_text, measure_text};
 
 use crate::{
-    app::{PrimitiveCounts, TimingState},
+    app::{CollisionSceneStats, PrimitiveCounts, TimingState},
     math::Vec2,
     physics::{
         body::{BodyType, RigidBody},
@@ -68,6 +68,7 @@ impl HudRenderer {
         raw_frame_time: f32,
         step_count: u64,
         primitive_counts: PrimitiveCounts,
+        collision_stats: CollisionSceneStats,
         body_readouts: &[BodyReadout],
     ) {
         let fps = if raw_frame_time > 0.0 {
@@ -82,7 +83,7 @@ impl HudRenderer {
         };
 
         let hud_lines = [
-            "M3 integrate".to_owned(),
+            "M4 collision detection".to_owned(),
             run_state,
             format!("fps: {:.1}", fps),
             format!("frame dt: {:.2} ms", raw_frame_time * 1000.0),
@@ -97,6 +98,10 @@ impl HudRenderer {
                 primitive_counts.circles,
                 primitive_counts.aabbs,
                 primitive_counts.points
+            ),
+            format!(
+                "collision pairs: {} candidates, {} overlaps",
+                collision_stats.candidate_pairs, collision_stats.collisions
             ),
         ];
 

@@ -11,6 +11,18 @@ impl Vec2 {
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+
+    pub fn dot(self, rhs: Self) -> f32 {
+        self.x * rhs.x + self.y * rhs.y
+    }
+
+    pub fn length_squared(self) -> f32 {
+        self.dot(self)
+    }
+
+    pub fn clamp(self, min: Self, max: Self) -> Self {
+        Self::new(self.x.clamp(min.x, max.x), self.y.clamp(min.y, max.y))
+    }
 }
 
 impl Add for Vec2 {

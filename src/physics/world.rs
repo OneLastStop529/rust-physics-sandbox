@@ -3,6 +3,7 @@ use crate::{
     physics::{
         body::{BodyHandle, BodyType, RigidBody},
         collider::Collider,
+        collision::{CollisionStats, collect_collision_pairs, detect_collision},
         integrate::integrate_body,
     },
 };
@@ -13,6 +14,7 @@ pub struct PhysicsWorld {
     step_count: u64,
     gravity: Vec2,
     bodies: Vec<RigidBody>,
+    collision_stats: CollisionStats,
 }
 
 impl PhysicsWorld {
@@ -22,6 +24,7 @@ impl PhysicsWorld {
             step_count: 0,
             gravity,
             bodies: Vec::new(),
+            collision_stats: CollisionStats::default(),
         }
     }
 
@@ -30,6 +33,7 @@ impl PhysicsWorld {
             integrate_body(body, dt, self.gravity);
         }
 
+        self.collision_stats = self.detect_collisions();
         self.step_count += 1;
     }
 
@@ -71,6 +75,25 @@ impl PhysicsWorld {
         &self.bodies
     }
 
+    pub fn collision_stats(&self) -> CollisionStats {
+        self.collision_stats
+    }
+
+    fn detect_collisions(&self) -> CollisionStats {
+        let candidate_pairs = collect_collision_pairs(&self.bodies);
+        let collisions = candidate_pairs
+            .iter()
+            .filter(|pair| {
+                detect_collision(&self.bodies[pair.body_a], &self.bodies[pair.body_b]).is_some()
+            })
+            .count();
+
+        CollisionStats {
+            candidate_pairs: candidate_pairs.len(),
+            collisions,
+        }
+    }
+
     #[cfg(test)]
     pub fn body(&self, handle: BodyHandle) -> Option<&RigidBody> {
         self.bodies.get(handle)
@@ -96,6 +119,7 @@ mod tests {
         physics::{
             body::{BodyType, RigidBody},
             collider::Collider,
+            collision::CollisionStats,
         },
     };
 
@@ -216,5 +240,28 @@ mod tests {
         assert_eq!(body.velocity, Vec2::new(4.0, 0.0));
         assert_eq!(body.position, Vec2::new(4.0, 0.0));
         assert_eq!(body.force_accumulator, Vec2::default());
+    }
+
+    #[test]
+    fn updates_collision_stats_each_step() {
+        let mut world = PhysicsWorld::new(Vec2::default());
+        world.create_dynamic_body(Vec2::new(0.0, 0.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_dynamic_body(Vec2::new(1.5, 0.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_static_body(
+            Vec2::new(10.0, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (1.0, 1.0),
+            }),
+        );
+
+        world.step(0.0);
+
+        assert_eq!(
+            world.collision_stats(),
+            CollisionStats {
+                candidate_pairs: 3,
+                collisions: 1,
+            }
+        );
     }
 }

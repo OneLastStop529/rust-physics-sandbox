@@ -6,7 +6,7 @@ The goal is to understand physics simulation architecture end to end: fixed time
 
 ## Status
 
-Milestone 3 is complete. The next implementation target is Milestone 4: Collision Detection.
+Milestone 4 is complete. The next implementation target is Milestone 5: Contact Generation.
 
 Current contents:
 
@@ -17,17 +17,21 @@ Current contents:
 - rigid body and physics world scaffolding
 - dynamic and static bodies with circle and AABB colliders
 - gravity and semi-implicit Euler integration
+- naive narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
+- collision pair and overlap counters in the debug HUD
+- deterministic collision detection tests for each supported shape pair
 - project planning docs and milestone breakdown
 
 Current runtime behavior:
 
-- a falling-body demo scene runs in a window
+- a collision-debug demo scene runs in a window
 - dynamic bodies accelerate under gravity
 - static bodies remain stationary
-- the floor is visualized but does not block motion yet
+- overlapping collider pairs are counted and surfaced in the HUD
+- bodies still pass through each other and through the floor because response is not implemented yet
 - tests and strict clippy checks are passing
 
-Collision detection and response are not implemented yet, so falling bodies currently pass through the floor. That is expected until Milestones 4 through 6.
+Contact generation and response are not implemented yet, so overlap is observable but has no physical effect. That is expected until Milestones 5 through 7.
 
 ## v0.1 Scope
 
@@ -120,11 +124,11 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Near-Term Plan
 
-1. implement Milestone 4 narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
-2. surface overlap results in deterministic tests before adding response code
-3. convert overlaps into contacts in Milestone 5
-4. add impulse-based collision resolution in Milestone 6
-5. expand sandbox controls, debug tools, and demo scenes after core collision behavior is stable
+1. convert narrow-phase overlap results into solver-ready contacts in Milestone 5
+2. document and test stable contact normal and penetration conventions
+3. add impulse-based collision resolution in Milestone 6
+4. layer restitution and friction on top of the solver in Milestone 7
+5. expand sandbox controls, debug tools, and demo scenes after collision response is stable
 
 ## Notes
 

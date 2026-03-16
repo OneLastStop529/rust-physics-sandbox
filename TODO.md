@@ -70,6 +70,8 @@ Deferred to Milestone 4+:
 
 ## Milestone 4: Collision Detection
 
+Completed:
+
 - implement naive pair generation over all bodies
 - skip static-static pairs
 - implement circle-circle overlap check
@@ -77,10 +79,13 @@ Deferred to Milestone 4+:
 - implement circle-AABB overlap check
 - define narrow-phase collision result type
 - add unit tests for all overlap and separation cases
-- add scene for circle-circle collision
-- add scene for AABB-AABB collision
-- add scene for circle-AABB collision
+- add scene coverage for circle-circle, AABB-AABB, and circle-AABB overlap cases
 - surface pair and collision counts in debug HUD
+
+Deferred to Milestone 5:
+
+- convert `CollisionHit` results into `Contact` values
+- surface contact points and normals in debug draw once contacts exist
 
 ## Milestone 5: Contact Generation
 

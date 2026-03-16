@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub struct Contact {
     pub body_a: u32,
     pub body_b: u32,

@@ -14,6 +14,23 @@ The intended design separates the code into these responsibilities:
 
 The simulation should not depend on rendering. Rendering reads world state and debug state after simulation steps complete.
 
+## Current Implementation Snapshot
+
+As of Milestone 4, the repository currently includes:
+
+- a Macroquad app shell with fixed timestep accumulation and pause/single-step controls
+- `PhysicsWorld` body storage plus gravity and semi-implicit Euler integration
+- `Circle` and axis-aligned `Aabb` colliders attached directly to bodies
+- narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
+- per-step collision pair and overlap counts surfaced through the HUD
+
+What is intentionally not implemented yet:
+
+- contact generation
+- collision response or impulse solving
+- restitution and friction behavior
+- contact debug visualization
+
 ## Simulation Loop
 
 The application runs a real-time frame loop, but the physics simulation advances on a fixed timestep.
