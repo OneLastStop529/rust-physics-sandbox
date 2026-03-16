@@ -36,6 +36,8 @@ pub struct DebugRenderer {
     camera: DebugCamera,
     axis_color: Color,
     circle_color: Color,
+    contact_normal_color: Color,
+    contact_point_color: Color,
     line_color: Color,
     point_color: Color,
     rect_color: Color,
@@ -47,6 +49,8 @@ impl DebugRenderer {
             camera,
             axis_color: color_u8!(96, 113, 145, 255),
             circle_color: color_u8!(255, 192, 92, 255),
+            contact_normal_color: color_u8!(244, 143, 177, 255),
+            contact_point_color: color_u8!(255, 111, 0, 255),
             line_color: color_u8!(44, 88, 132, 255),
             point_color: color_u8!(255, 96, 96, 255),
             rect_color: color_u8!(83, 217, 194, 255),
@@ -115,6 +119,32 @@ impl DebugRenderer {
             screen_point.y + size,
             2.0,
             self.point_color,
+        );
+    }
+
+    pub fn contact_point(&mut self, point: Vec2) {
+        let screen_point = self.camera.world_to_screen(point);
+
+        draw_circle_lines(
+            screen_point.x,
+            screen_point.y,
+            5.0,
+            2.0,
+            self.contact_point_color,
+        );
+    }
+
+    pub fn contact_normal(&mut self, point: Vec2, normal: Vec2, length: f32) {
+        let screen_start = self.camera.world_to_screen(point);
+        let screen_end = self.camera.world_to_screen(point + normal * length);
+
+        draw_line(
+            screen_start.x,
+            screen_start.y,
+            screen_end.x,
+            screen_end.y,
+            2.0,
+            self.contact_normal_color,
         );
     }
 

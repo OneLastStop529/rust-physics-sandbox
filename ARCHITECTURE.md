@@ -16,20 +16,19 @@ The simulation should not depend on rendering. Rendering reads world state and d
 
 ## Current Implementation Snapshot
 
-As of Milestone 4, the repository currently includes:
+As of Milestone 5, the repository currently includes:
 
 - a Macroquad app shell with fixed timestep accumulation and pause/single-step controls
 - `PhysicsWorld` body storage plus gravity and semi-implicit Euler integration
 - `Circle` and axis-aligned `Aabb` colliders attached directly to bodies
 - narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
-- per-step collision pair and overlap counts surfaced through the HUD
+- step-local `Contact` generation with world-space points, normals, penetration, restitution, and friction
+- contact point and contact normal debug visualization plus per-step collision/contact counts in the HUD
 
 What is intentionally not implemented yet:
 
-- contact generation
 - collision response or impulse solving
 - restitution and friction behavior
-- contact debug visualization
 
 ## Simulation Loop
 
@@ -141,6 +140,7 @@ Suggested ownership:
 
 - `App` owns `SceneManager`, `PhysicsWorld`, `DebugSettings`, and timing state
 - `PhysicsWorld` owns a `Vec<RigidBody>`
+- `PhysicsWorld` also owns the current step's `Vec<Contact>` for debug draw and upcoming solver work
 - `RigidBody` owns transform, velocities, collider, and material data
 - solver and collision systems operate on mutable world state plus temporary contact buffers
 
@@ -181,7 +181,7 @@ For `v0.1`, use a simple enum:
 ```text
 enum Collider {
     Circle { radius: f32 },
-    Aabb { half_extents: Vec2 },
+    Aabb { half_extents: (f32, f32) },
 }
 ```
 
@@ -261,6 +261,13 @@ Avoid blending detection and impulse resolution logic.
 Convert narrow-phase results into `Contact` records.
 
 For `v0.1`, one contact point per pair is acceptable. Multi-point manifolds can be deferred if single-point contacts are good enough for the first release.
+
+For the current codebase, the M5 split is:
+
+- keep pair generation and overlap checks in `collision.rs`
+- construct `Contact` values after integration inside `PhysicsWorld::step`
+- cache only the current step's contacts on the world for rendering and tests
+- feed HUD overlap/contact counts from that cached contact buffer
 
 ## Solver Pipeline
 

@@ -89,6 +89,8 @@ Deferred to Milestone 5:
 
 ## Milestone 5: Contact Generation
 
+Completed:
+
 - define `Contact` struct
 - document contact normal convention
 - generate contact for circle-circle collisions
@@ -100,6 +102,32 @@ Deferred to Milestone 5:
 - add debug rendering for contact points
 - add debug rendering for contact normals
 - add unit tests for expected contact normals and depths
+
+Completed implementation notes:
+
+1. World and data model
+   - replace the placeholder tuple-based `Contact` type in `src/physics/contact.rs` with a `Vec2`-based step-local record using `BodyHandle`
+   - keep the existing `normal` convention from the docs: point from `body_a` to `body_b`
+   - store current-step contacts on `PhysicsWorld` beside `collision_stats` and expose an immutable accessor for rendering and tests
+   - derive overlap-pair counts from generated contacts so M4 overlap counts and M5 contact counts stay in sync
+2. Collision-to-contact conversion
+   - keep broad-phase pair collection unchanged for now
+   - keep `detect_collision` focused on overlap geometry and add a new contact-generation path that computes `point`, `penetration`, `normal`, `restitution`, and `friction`
+   - use one contact point per pair for `v0.1`
+   - mix restitution and friction in one place during contact construction so solver work in M6/M7 can reuse it directly
+3. Shape-specific contact details
+   - circle-circle: point at `center_a + normal * radius_a`
+   - AABB-AABB: point on the incident face along the minimum-penetration axis, using the overlapping span midpoint on the other axis
+   - circle-AABB: use the closest-point result for outside hits and the selected face center/projection for inside hits
+   - preserve pair ordering by flipping normals and contact points consistently when the narrow phase is called with swapped shape order
+4. Debug surfacing
+   - add `DebugRenderer` helpers for contact markers and short normal rays instead of reusing generic world points everywhere
+   - extend `DebugScene::draw_world` to render contacts after collider outlines so markers stay visible
+   - extend primitive/contact counts for the HUD and rename the milestone label from M4 to M5 when contact rendering lands
+5. Tests
+   - add unit tests for each supported shape pair covering contact normal direction, penetration depth, and representative contact point placement
+   - add a world-step test proving contacts are refreshed each step rather than accumulating stale data
+   - keep tolerances explicit for floating-point comparisons
 
 ## Milestone 6: Impulse Solver
 

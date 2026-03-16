@@ -83,7 +83,7 @@ impl HudRenderer {
         };
 
         let hud_lines = [
-            "M4 collision detection".to_owned(),
+            "M5 contact generation".to_owned(),
             run_state,
             format!("fps: {:.1}", fps),
             format!("frame dt: {:.2} ms", raw_frame_time * 1000.0),
@@ -93,15 +93,19 @@ impl HudRenderer {
             format!("steps this frame: {}", timing.steps_this_frame()),
             format!("sim steps total: {}", step_count),
             format!(
-                "primitives: {} lines, {} circles, {} aabbs, {} points",
+                "primitives: {} lines, {} circles, {} aabbs, {} points, {} contact pts, {} contact normals",
                 primitive_counts.lines,
                 primitive_counts.circles,
                 primitive_counts.aabbs,
-                primitive_counts.points
+                primitive_counts.points,
+                primitive_counts.contact_points,
+                primitive_counts.contact_normals
             ),
             format!(
-                "collision pairs: {} candidates, {} overlaps",
-                collision_stats.candidate_pairs, collision_stats.collisions
+                "collision pairs: {} candidates, {} overlaps, {} contacts",
+                collision_stats.candidate_pairs,
+                collision_stats.overlapping_pairs,
+                collision_stats.contact_count
             ),
         ];
 

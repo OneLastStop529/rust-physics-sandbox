@@ -3,6 +3,7 @@ use crate::{
     physics::{
         body::{BodyHandle, RigidBody},
         collider::Collider,
+        contact::Contact,
     },
 };
 
@@ -15,7 +16,7 @@ pub struct BodyPair {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CollisionStats {
     pub candidate_pairs: usize,
-    pub collisions: usize,
+    pub overlapping_pairs: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -90,6 +91,67 @@ pub fn detect_collision(body_a: &RigidBody, body_b: &RigidBody) -> Option<Collis
             penetration: hit.penetration,
         }),
     }
+}
+
+pub fn generate_contact(
+    body_a_handle: BodyHandle,
+    body_a: &RigidBody,
+    body_b_handle: BodyHandle,
+    body_b: &RigidBody,
+) -> Option<Contact> {
+    let hit = detect_collision(body_a, body_b)?;
+    let collider_a = body_a.collider?;
+    let collider_b = body_b.collider?;
+
+    let point = match (collider_a, collider_b) {
+        (Collider::Circle { radius: radius_a }, Collider::Circle { .. }) => {
+            body_a.position + hit.normal * radius_a
+        }
+        (
+            Collider::Aabb {
+                half_extents: half_extents_a,
+            },
+            Collider::Aabb {
+                half_extents: half_extents_b,
+            },
+        ) => aabb_aabb_contact_point(
+            Aabb::from_center_half_extents(
+                body_a.position,
+                Vec2::new(half_extents_a.0, half_extents_a.1),
+            ),
+            Aabb::from_center_half_extents(
+                body_b.position,
+                Vec2::new(half_extents_b.0, half_extents_b.1),
+            ),
+            hit.normal,
+        ),
+        (Collider::Circle { .. }, Collider::Aabb { half_extents }) => circle_aabb_contact_point(
+            body_a.position,
+            Aabb::from_center_half_extents(
+                body_b.position,
+                Vec2::new(half_extents.0, half_extents.1),
+            ),
+            hit.normal,
+        ),
+        (Collider::Aabb { half_extents }, Collider::Circle { .. }) => circle_aabb_contact_point(
+            body_b.position,
+            Aabb::from_center_half_extents(
+                body_a.position,
+                Vec2::new(half_extents.0, half_extents.1),
+            ),
+            hit.normal * -1.0,
+        ),
+    };
+
+    Some(build_contact(
+        body_a_handle,
+        body_b_handle,
+        body_a,
+        body_b,
+        hit.normal,
+        hit.penetration,
+        point,
+    ))
 }
 
 pub fn collide_circle_circle(
@@ -187,11 +249,84 @@ impl SignumOrPositive for f32 {
     }
 }
 
+fn aabb_aabb_contact_point(aabb_a: Aabb, aabb_b: Aabb, normal: Vec2) -> Vec2 {
+    let min_a = aabb_a.min();
+    let max_a = aabb_a.max();
+    let min_b = aabb_b.min();
+    let max_b = aabb_b.max();
+
+    if normal.x != 0.0 {
+        Vec2::new(
+            aabb_a.center.x + aabb_a.half_extents.x * normal.x,
+            overlap_midpoint(min_a.y, max_a.y, min_b.y, max_b.y),
+        )
+    } else {
+        Vec2::new(
+            overlap_midpoint(min_a.x, max_a.x, min_b.x, max_b.x),
+            aabb_a.center.y + aabb_a.half_extents.y * normal.y,
+        )
+    }
+}
+
+fn circle_aabb_contact_point(circle_center: Vec2, aabb: Aabb, normal: Vec2) -> Vec2 {
+    let min = aabb.min();
+    let max = aabb.max();
+    let closest = circle_center.clamp(min, max);
+
+    if (closest - circle_center).length_squared() > 0.0 {
+        closest
+    } else if normal.x != 0.0 {
+        Vec2::new(
+            aabb.center.x + aabb.half_extents.x * normal.x,
+            circle_center.y.clamp(min.y, max.y),
+        )
+    } else {
+        Vec2::new(
+            circle_center.x.clamp(min.x, max.x),
+            aabb.center.y + aabb.half_extents.y * normal.y,
+        )
+    }
+}
+
+fn build_contact(
+    body_a_handle: BodyHandle,
+    body_b_handle: BodyHandle,
+    body_a: &RigidBody,
+    body_b: &RigidBody,
+    normal: Vec2,
+    penetration: f32,
+    point: Vec2,
+) -> Contact {
+    Contact {
+        body_a: body_a_handle,
+        body_b: body_b_handle,
+        normal,
+        penetration,
+        point,
+        restitution: mix_restitution(body_a.restitution, body_b.restitution),
+        friction: mix_friction(body_a.friction, body_b.friction),
+    }
+}
+
+fn mix_restitution(restitution_a: f32, restitution_b: f32) -> f32 {
+    0.5 * (restitution_a + restitution_b)
+}
+
+fn mix_friction(friction_a: f32, friction_b: f32) -> f32 {
+    0.5 * (friction_a + friction_b)
+}
+
+fn overlap_midpoint(min_a: f32, max_a: f32, min_b: f32, max_b: f32) -> f32 {
+    let overlap_min = min_a.max(min_b);
+    let overlap_max = max_a.min(max_b);
+    0.5 * (overlap_min + overlap_max)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         BodyPair, collect_collision_pairs, collide_aabb_aabb, collide_circle_aabb,
-        collide_circle_circle, detect_collision,
+        collide_circle_circle, detect_collision, generate_contact,
     };
     use crate::{
         math::{Aabb, Vec2},
@@ -325,5 +460,88 @@ mod tests {
 
         assert_eq!(hit.normal, Vec2::new(0.0, -1.0));
         assert!((hit.penetration - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn generates_circle_circle_contact() {
+        let mut body_a = RigidBody::new(
+            0,
+            BodyType::Dynamic,
+            Vec2::new(0.0, 0.0),
+            Some(Collider::Circle { radius: 1.5 }),
+        );
+        body_a.restitution = 0.2;
+        body_a.friction = 0.4;
+
+        let mut body_b = RigidBody::new(
+            1,
+            BodyType::Dynamic,
+            Vec2::new(2.0, 0.0),
+            Some(Collider::Circle { radius: 1.0 }),
+        );
+        body_b.restitution = 0.8;
+        body_b.friction = 0.6;
+
+        let contact = generate_contact(0, &body_a, 1, &body_b).unwrap();
+
+        assert_eq!(contact.body_a, 0);
+        assert_eq!(contact.body_b, 1);
+        assert_eq!(contact.normal, Vec2::new(1.0, 0.0));
+        assert_eq!(contact.point, Vec2::new(1.5, 0.0));
+        assert!((contact.penetration - 0.5).abs() < 1e-6);
+        assert!((contact.restitution - 0.5).abs() < 1e-6);
+        assert!((contact.friction - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn generates_aabb_aabb_contact() {
+        let body_a = RigidBody::new(
+            0,
+            BodyType::Dynamic,
+            Vec2::new(0.0, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (2.0, 1.0),
+            }),
+        );
+        let body_b = RigidBody::new(
+            1,
+            BodyType::Static,
+            Vec2::new(3.0, 0.25),
+            Some(Collider::Aabb {
+                half_extents: (2.0, 1.0),
+            }),
+        );
+
+        let contact = generate_contact(0, &body_a, 1, &body_b).unwrap();
+
+        assert_eq!(contact.normal, Vec2::new(1.0, 0.0));
+        assert_eq!(contact.point, Vec2::new(2.0, 0.125));
+        assert!((contact.penetration - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn generates_circle_aabb_contact_for_swapped_order() {
+        let aabb = RigidBody::new(
+            0,
+            BodyType::Static,
+            Vec2::new(0.0, 0.0),
+            Some(Collider::Aabb {
+                half_extents: (1.0, 1.0),
+            }),
+        );
+        let circle = RigidBody::new(
+            1,
+            BodyType::Dynamic,
+            Vec2::new(0.25, 1.5),
+            Some(Collider::Circle { radius: 1.0 }),
+        );
+
+        let contact = generate_contact(0, &aabb, 1, &circle).unwrap();
+
+        assert_eq!(contact.body_a, 0);
+        assert_eq!(contact.body_b, 1);
+        assert_eq!(contact.normal, Vec2::new(0.0, 1.0));
+        assert_eq!(contact.point, Vec2::new(0.25, 1.0));
+        assert!((contact.penetration - 0.5).abs() < 1e-6);
     }
 }

@@ -3,7 +3,8 @@ use crate::{
     physics::{
         body::{BodyHandle, BodyType, RigidBody},
         collider::Collider,
-        collision::{CollisionStats, collect_collision_pairs, detect_collision},
+        collision::{CollisionStats, collect_collision_pairs, generate_contact},
+        contact::Contact,
         integrate::integrate_body,
     },
 };
@@ -15,6 +16,7 @@ pub struct PhysicsWorld {
     gravity: Vec2,
     bodies: Vec<RigidBody>,
     collision_stats: CollisionStats,
+    contacts: Vec<Contact>,
 }
 
 impl PhysicsWorld {
@@ -25,6 +27,7 @@ impl PhysicsWorld {
             gravity,
             bodies: Vec::new(),
             collision_stats: CollisionStats::default(),
+            contacts: Vec::new(),
         }
     }
 
@@ -33,7 +36,11 @@ impl PhysicsWorld {
             integrate_body(body, dt, self.gravity);
         }
 
-        self.collision_stats = self.detect_collisions();
+        self.contacts = self.collect_contacts();
+        self.collision_stats = CollisionStats {
+            candidate_pairs: collect_collision_pairs(&self.bodies).len(),
+            overlapping_pairs: self.contacts.len(),
+        };
         self.step_count += 1;
     }
 
@@ -79,19 +86,24 @@ impl PhysicsWorld {
         self.collision_stats
     }
 
-    fn detect_collisions(&self) -> CollisionStats {
-        let candidate_pairs = collect_collision_pairs(&self.bodies);
-        let collisions = candidate_pairs
-            .iter()
-            .filter(|pair| {
-                detect_collision(&self.bodies[pair.body_a], &self.bodies[pair.body_b]).is_some()
-            })
-            .count();
+    pub fn contacts(&self) -> &[Contact] {
+        &self.contacts
+    }
 
-        CollisionStats {
-            candidate_pairs: candidate_pairs.len(),
-            collisions,
-        }
+    fn collect_contacts(&self) -> Vec<Contact> {
+        let candidate_pairs = collect_collision_pairs(&self.bodies);
+
+        candidate_pairs
+            .iter()
+            .filter_map(|pair| {
+                generate_contact(
+                    pair.body_a,
+                    &self.bodies[pair.body_a],
+                    pair.body_b,
+                    &self.bodies[pair.body_b],
+                )
+            })
+            .collect()
     }
 
     #[cfg(test)]
@@ -120,6 +132,7 @@ mod tests {
             body::{BodyType, RigidBody},
             collider::Collider,
             collision::CollisionStats,
+            contact::Contact,
         },
     };
 
@@ -260,8 +273,47 @@ mod tests {
             world.collision_stats(),
             CollisionStats {
                 candidate_pairs: 3,
-                collisions: 1,
+                overlapping_pairs: 1,
             }
         );
+    }
+
+    #[test]
+    fn populates_contacts_from_overlaps() {
+        let mut world = PhysicsWorld::new(Vec2::default());
+        world.create_dynamic_body(Vec2::new(0.0, 0.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_dynamic_body(Vec2::new(1.5, 0.0), Some(Collider::Circle { radius: 1.0 }));
+
+        world.step(0.0);
+
+        assert_eq!(world.contacts().len(), 1);
+        assert_eq!(world.contacts()[0].normal, Vec2::new(1.0, 0.0));
+        assert_eq!(world.contacts()[0].point, Vec2::new(1.0, 0.0));
+        assert!((world.contacts()[0].penetration - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn starts_with_no_contacts() {
+        let world = PhysicsWorld::default();
+
+        assert!(world.contacts().is_empty());
+    }
+
+    #[test]
+    fn clears_contacts_each_step() {
+        let mut world = PhysicsWorld::default();
+        world.contacts.push(Contact {
+            body_a: 0,
+            body_b: 1,
+            normal: Vec2::new(1.0, 0.0),
+            penetration: 0.25,
+            point: Vec2::new(0.5, 0.0),
+            restitution: 0.5,
+            friction: 0.5,
+        });
+
+        world.step(0.0);
+
+        assert!(world.contacts().is_empty());
     }
 }

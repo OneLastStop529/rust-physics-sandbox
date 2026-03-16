@@ -19,7 +19,7 @@ The first release, `v0.1`, focuses on a minimal but complete 2D simulation stack
 
 The plan is intentionally incremental. Each milestone should leave the repository runnable, inspectable, and in a state where the next milestone can build on stable behavior instead of partial scaffolding.
 
-Current repository status: Milestone 4 is complete. The repository now has a runnable Macroquad sandbox with fixed timestep stepping, rigid bodies, gravity/integration, narrow-phase collision detection, and HUD collision counters. Milestone 5 is the next implementation target.
+Current repository status: Milestone 5 is complete. The repository now has a runnable Macroquad sandbox with fixed timestep stepping, rigid bodies, gravity/integration, narrow-phase collision detection, step-local contact generation, and contact debug rendering/HUD counters. Milestone 6 is the next implementation target.
 
 ## Development Principles
 

@@ -1,7 +1,7 @@
 use crate::math::{Aabb, Vec2};
 use crate::physics::body::RigidBody;
 use crate::physics::collision::CollisionStats;
-use crate::physics::{collider::Collider, world::PhysicsWorld};
+use crate::physics::{collider::Collider, contact::Contact, world::PhysicsWorld};
 use crate::render::debug_draw::DebugRenderer;
 
 // A simple scene that contains a grid, some circles, AABBs, and points for testing the debug renderer. The `DebugScene` struct holds the data for these primitives and provides a method to draw them using a `DebugRenderer`. It also has a method to count the number of each type of primitive in the scene.
@@ -10,13 +10,16 @@ pub struct PrimitiveCounts {
     pub lines: usize,
     pub circles: usize,
     pub aabbs: usize,
+    pub contact_normals: usize,
+    pub contact_points: usize,
     pub points: usize,
 }
 
 #[derive(Clone, Copy)]
 pub struct CollisionSceneStats {
     pub candidate_pairs: usize,
-    pub collisions: usize,
+    pub overlapping_pairs: usize,
+    pub contact_count: usize,
 }
 
 // The `DebugScene` struct represents a simple scene for testing the debug renderer. It contains a grid of lines, a few circles, AABBs, and points. The `draw` method uses a `DebugRenderer` to render these primitives on the screen, while the `primitive_counts` method returns the count of each type of primitive in the scene for display in the HUD.
@@ -50,7 +53,7 @@ impl Default for DebugScene {
 
 impl DebugScene {
     pub fn initialize_world(world: &mut PhysicsWorld) {
-        // Milestone 4 scene covers the supported narrow-phase pairs.
+        // The default scene covers all supported shape pairs and visualizes M5 contacts.
         world.create_static_body(
             Vec2::new(0.0, -5.5),
             Some(Collider::Aabb {
@@ -90,17 +93,22 @@ impl DebugScene {
         for body in world.bodies() {
             self.draw_body(renderer, body);
         }
+
+        for contact in world.contacts() {
+            self.draw_contact(renderer, contact);
+        }
     }
 
     pub fn primitive_counts(&self, world: &PhysicsWorld) -> PrimitiveCounts {
         let mut circles = 0;
         let mut aabbs = 0;
+        let mut points = 0;
 
         for body in world.bodies() {
             match body.collider {
                 Some(Collider::Circle { .. }) => circles += 1,
                 Some(Collider::Aabb { .. }) => aabbs += 1,
-                None => {}
+                None => points += 1,
             }
         }
 
@@ -108,19 +116,22 @@ impl DebugScene {
             lines: self.grid_lines.len(),
             circles,
             aabbs,
-            points: 0,
+            contact_normals: world.contacts().len(),
+            contact_points: world.contacts().len(),
+            points,
         }
     }
 
     pub fn collision_stats(&self, world: &PhysicsWorld) -> CollisionSceneStats {
         let CollisionStats {
             candidate_pairs,
-            collisions,
+            overlapping_pairs,
         } = world.collision_stats();
 
         CollisionSceneStats {
             candidate_pairs,
-            collisions,
+            overlapping_pairs,
+            contact_count: world.contacts().len(),
         }
     }
 
@@ -133,5 +144,36 @@ impl DebugScene {
             )),
             None => renderer.point(body.position),
         }
+    }
+
+    fn draw_contact(&self, renderer: &mut DebugRenderer, contact: &Contact) {
+        renderer.contact_point(contact.point);
+        renderer.contact_normal(contact.point, contact.normal, 0.6);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DebugScene;
+    use crate::{
+        math::Vec2,
+        physics::{collider::Collider, world::PhysicsWorld},
+    };
+
+    #[test]
+    fn primitive_counts_include_contact_debug_geometry() {
+        let scene = DebugScene::default();
+        let mut world = PhysicsWorld::new(Vec2::default());
+        world.create_dynamic_body(Vec2::new(0.0, 0.0), Some(Collider::Circle { radius: 1.0 }));
+        world.create_dynamic_body(Vec2::new(1.5, 0.0), Some(Collider::Circle { radius: 1.0 }));
+
+        world.step(0.0);
+
+        let counts = scene.primitive_counts(&world);
+
+        assert_eq!(counts.circles, 2);
+        assert_eq!(counts.aabbs, 0);
+        assert_eq!(counts.contact_points, 1);
+        assert_eq!(counts.contact_normals, 1);
     }
 }

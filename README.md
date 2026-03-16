@@ -6,7 +6,7 @@ The goal is to understand physics simulation architecture end to end: fixed time
 
 ## Status
 
-Milestone 4 is complete. The next implementation target is Milestone 5: Contact Generation.
+Milestone 5 is complete. The next implementation target is Milestone 6: Impulse Solver.
 
 Current contents:
 
@@ -18,7 +18,9 @@ Current contents:
 - dynamic and static bodies with circle and AABB colliders
 - gravity and semi-implicit Euler integration
 - naive narrow-phase collision detection for circle-circle, AABB-AABB, and circle-AABB
-- collision pair and overlap counters in the debug HUD
+- step-local contact generation with world-space points, normals, penetration, restitution, and friction
+- collision pair, overlapping-pair, and contact counters in the debug HUD
+- contact point and contact normal debug visualization
 - deterministic collision detection tests for each supported shape pair
 - project planning docs and milestone breakdown
 
@@ -27,11 +29,11 @@ Current runtime behavior:
 - a collision-debug demo scene runs in a window
 - dynamic bodies accelerate under gravity
 - static bodies remain stationary
-- overlapping collider pairs are counted and surfaced in the HUD
+- overlapping collider pairs generate contacts that are drawn and surfaced in the HUD
 - bodies still pass through each other and through the floor because response is not implemented yet
 - tests and strict clippy checks are passing
 
-Contact generation and response are not implemented yet, so overlap is observable but has no physical effect. That is expected until Milestones 5 through 7.
+Contact generation is implemented, but collision response is not, so overlap is observable and inspectable without any physical separation yet. That is expected until Milestones 6 and 7.
 
 ## v0.1 Scope
 
@@ -124,11 +126,11 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Near-Term Plan
 
-1. convert narrow-phase overlap results into solver-ready contacts in Milestone 5
-2. document and test stable contact normal and penetration conventions
-3. add impulse-based collision resolution in Milestone 6
-4. layer restitution and friction on top of the solver in Milestone 7
-5. expand sandbox controls, debug tools, and demo scenes after collision response is stable
+1. add impulse-based collision resolution in Milestone 6
+2. layer restitution and friction on top of the solver in Milestone 7
+3. expand sandbox controls in Milestone 8
+4. add runtime debug toggles and diagnostics in Milestone 9
+5. harden docs, demos, and validation for the v0.1 release
 
 ## Notes
 
